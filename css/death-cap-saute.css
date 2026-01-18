@@ -1,0 +1,902 @@
+/**
+ * ============================================================================
+ * DEATH CAP SAUTE - Main Stylesheet
+ * ============================================================================
+ *
+ * This CSS file styles our Foundry VTT game system. It's loaded via system.json:
+ *   "styles": ["css/death-cap-saute.css"]
+ *
+ * FOUNDRY CSS CONVENTIONS:
+ * - Use the system's class name (.death-cap-saute) as a prefix to avoid
+ *   conflicts with Foundry's core styles or other modules.
+ * - Foundry uses Font Awesome icons (fas, far classes).
+ * - Foundry sheets are rendered inside .window-app containers.
+ *
+ * CSS CUSTOM PROPERTIES (VARIABLES):
+ * We define color variables in :root so they can be reused throughout
+ * and easily changed to update the entire color scheme.
+ */
+
+/* =============================================================================
+   CSS CUSTOM PROPERTIES (Variables)
+   Define our color palette here for easy theming and consistency.
+   Access these anywhere with var(--dcs-propertyName)
+============================================================================= */
+:root {
+  /* Primary brown - used for headers, borders, main text elements */
+  --dcs-primary: #5a3d2b;
+
+  /* Secondary gold - used for accents, active states, buttons */
+  --dcs-secondary: #8b6914;
+
+  /* Accent gold (lighter) - highlights, hover states */
+  --dcs-accent: #c4a35a;
+
+  /* Background cream - main sheet background */
+  --dcs-background: #f5f0e6;
+
+  /* Danger red - hazards, kill buttons, warnings */
+  --dcs-danger: #8b2500;
+
+  /* Success green - alive status, dish dice, completion */
+  --dcs-success: #2d5016;
+
+  /* Main text color - dark brown for readability */
+  --dcs-text: #2c2416;
+
+  /* Border color - mid-tone brown */
+  --dcs-border: #a08060;
+
+  /* Dead/disabled state - gray */
+  --dcs-dead: #666;
+
+  /* Shroomp purple - the game's signature color for mushrooms! */
+  --dcs-shroomp: #7b4f9d;
+}
+
+/* =============================================================================
+   BASE SHEET STYLES
+   These styles apply to the entire actor sheet window.
+   The .sheet class is added by Foundry to all ActorSheet windows.
+============================================================================= */
+
+/* Main sheet container - sets the overall look and feel */
+.death-cap-saute.sheet {
+  background: var(--dcs-background);
+  color: var(--dcs-text);
+  /* Signika is Foundry's default UI font - using it keeps things consistent */
+  font-family: "Signika", sans-serif;
+}
+
+/* When all team members are dead, the sheet becomes semi-transparent
+   to visually indicate elimination from the competition */
+.death-cap-saute.sheet.eliminated {
+  opacity: 0.7;
+}
+
+/* =============================================================================
+   HEADER SECTION
+   The top area showing restaurant image, name, and quick stats.
+   Uses flexbox for horizontal layout with the image on the left.
+============================================================================= */
+
+.death-cap-saute .sheet-header {
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem;
+  /* Solid bottom border separates header from tabs */
+  border-bottom: 3px solid var(--dcs-primary);
+  /* Subtle gradient adds depth */
+  background: linear-gradient(to bottom, #e8e0d0, var(--dcs-background));
+}
+
+/* Profile/restaurant image - square with rounded corners */
+.death-cap-saute .profile-img {
+  border: 3px solid var(--dcs-primary);
+  border-radius: 8px;
+  object-fit: cover; /* Ensures image fills space without distortion */
+}
+
+/* Container for name and stats - fills remaining space */
+.death-cap-saute .header-fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Restaurant name input - styled to look like a title, not a form field */
+.death-cap-saute .restaurant-name input {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--dcs-primary);
+  background: transparent;
+  border: none;
+  /* Dashed underline indicates editability */
+  border-bottom: 2px dashed var(--dcs-border);
+  width: 100%;
+}
+
+/* Header stats row - shroomp count and team status */
+.death-cap-saute .header-stats {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+  font-size: 1rem;
+}
+
+/* Shroomp count uses the signature purple color */
+.death-cap-saute .shroomp-count {
+  color: var(--dcs-shroomp);
+  font-weight: bold;
+}
+
+/* Team alive count uses success green */
+.death-cap-saute .team-status {
+  color: var(--dcs-success);
+}
+
+/* =============================================================================
+   TAB NAVIGATION
+   Foundry's built-in tab system. We style the nav items here.
+   The tabs work via data-tab and data-group attributes (see template).
+============================================================================= */
+
+.death-cap-saute .sheet-tabs {
+  background: var(--dcs-primary);
+  border: none;
+  margin: 0;
+}
+
+/* Individual tab items - white text on dark background */
+.death-cap-saute .sheet-tabs .item {
+  color: var(--dcs-background);
+  padding: 0.5rem 1rem;
+  border: none;
+  opacity: 0.7; /* Inactive tabs are dimmed */
+}
+
+/* Hover state - full opacity with glow effect */
+.death-cap-saute .sheet-tabs .item:hover {
+  opacity: 1;
+  text-shadow: 0 0 5px var(--dcs-accent);
+}
+
+/* Active tab - gold background to stand out */
+.death-cap-saute .sheet-tabs .item.active {
+  opacity: 1;
+  background: var(--dcs-secondary);
+}
+
+/* =============================================================================
+   SHEET BODY
+   The main content area where tab content is displayed.
+   Uses calc() to fill remaining height after header and tabs.
+============================================================================= */
+
+.death-cap-saute .sheet-body {
+  padding: 0.75rem;
+  overflow-y: auto; /* Scrollable when content overflows */
+  /* Calculate height: 100% minus header (~100px) and tabs (~60px) */
+  height: calc(100% - 160px);
+}
+
+/* Individual tab content containers */
+.death-cap-saute .tab {
+  padding: 0.5rem;
+}
+
+/* Section headings - gold underline accent */
+.death-cap-saute h2 {
+  color: var(--dcs-primary);
+  border-bottom: 2px solid var(--dcs-secondary);
+  padding-bottom: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Subsection headings */
+.death-cap-saute h3 {
+  color: var(--dcs-primary);
+  margin: 0.5rem 0;
+}
+
+/* Hint/help text - subtle italic gray */
+.death-cap-saute .hint {
+  color: #666;
+  font-size: 0.85rem;
+  font-style: italic;
+  margin-bottom: 1rem;
+}
+
+/* =============================================================================
+   FORM ELEMENTS
+   Standard form styling for inputs, selects, and textareas.
+   These are used throughout the sheet for data entry.
+============================================================================= */
+
+/* Form group container - adds consistent spacing */
+.death-cap-saute .form-group {
+  margin-bottom: 0.5rem;
+}
+
+/* Labels above inputs */
+.death-cap-saute .form-group label {
+  display: block;
+  font-weight: bold;
+  color: var(--dcs-primary);
+  margin-bottom: 0.15rem;
+  font-size: 0.85rem;
+}
+
+/* Inline form groups - label and input side by side */
+.death-cap-saute .form-group.inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.death-cap-saute .form-group.inline label {
+  margin-bottom: 0;
+  white-space: nowrap; /* Prevents label from wrapping */
+}
+
+/* Common input styles - consistent look for all form fields */
+.death-cap-saute input[type="text"],
+.death-cap-saute input[type="number"],
+.death-cap-saute textarea,
+.death-cap-saute select {
+  padding: 0.35rem;
+  border: 1px solid var(--dcs-border);
+  border-radius: 4px;
+  background: white;
+  color: var(--dcs-text);
+  font-family: inherit;
+}
+
+/* Text inputs and selects fill their container width */
+.death-cap-saute input[type="text"],
+.death-cap-saute select {
+  width: 100%;
+}
+
+/* Number inputs are narrow and centered (for dice values) */
+.death-cap-saute input[type="number"] {
+  width: 60px;
+  text-align: center;
+}
+
+/* Textareas for notes - resizable vertically only */
+.death-cap-saute textarea {
+  width: 100%;
+  min-height: 50px;
+  resize: vertical;
+}
+
+/* Focus state - highlight with primary color and subtle glow */
+.death-cap-saute input:focus,
+.death-cap-saute select:focus,
+.death-cap-saute textarea:focus {
+  border-color: var(--dcs-primary);
+  outline: none;
+  box-shadow: 0 0 3px var(--dcs-accent);
+}
+
+/* Disabled state - grayed out for dead team members */
+.death-cap-saute input:disabled,
+.death-cap-saute select:disabled {
+  background: #ddd;
+  color: #888;
+}
+
+/* =============================================================================
+   BUTTONS
+   Primary button styling used throughout the sheet.
+   All buttons share a consistent look with hover states.
+============================================================================= */
+
+.death-cap-saute button {
+  background: var(--dcs-secondary);
+  color: white;
+  border: none;
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s; /* Smooth hover transition */
+  font-family: inherit;
+}
+
+/* Hover darkens the button */
+.death-cap-saute button:hover {
+  background: var(--dcs-primary);
+}
+
+/* Icon spacing inside buttons */
+.death-cap-saute button i {
+  margin-right: 0.25rem;
+}
+
+/* =============================================================================
+   TEAM MEMBERS SECTION
+   The Team tab displays 3 team member cards in a grid.
+   Each card shows the member's name, mutation, and status.
+============================================================================= */
+
+/* 3-column grid for team member cards */
+.death-cap-saute .team-members-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+/* Individual team member card */
+.death-cap-saute .team-member {
+  /* Subtle gradient background gives depth */
+  background: linear-gradient(135deg, #e8e0d0, #d8d0c0);
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 2px solid var(--dcs-border);
+}
+
+/* Dead team members are grayed out */
+.death-cap-saute .team-member.dead {
+  background: linear-gradient(135deg, #ccc, #bbb);
+  border-color: var(--dcs-dead);
+  opacity: 0.8;
+}
+
+/* Header row with member number and alive/dead status */
+.death-cap-saute .member-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--dcs-border);
+}
+
+/* Member number badge (#1, #2, #3) */
+.death-cap-saute .member-number {
+  font-weight: bold;
+  color: var(--dcs-primary);
+}
+
+/* Status badges - colored text */
+.death-cap-saute .status.alive {
+  color: var(--dcs-success);
+  font-size: 0.8rem;
+}
+
+.death-cap-saute .status.dead {
+  color: var(--dcs-danger);
+  font-size: 0.8rem;
+}
+
+/* Mutation description box - semi-transparent background */
+.death-cap-saute .mutation-description {
+  background: rgba(255,255,255,0.5);
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  margin: 0.5rem 0;
+}
+
+.death-cap-saute .mutation-description p {
+  margin: 0;
+}
+
+/* Action buttons container */
+.death-cap-saute .member-actions {
+  margin-top: 0.5rem;
+}
+
+/* Kill button - danger red */
+.death-cap-saute .kill-member {
+  background: var(--dcs-danger);
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Revive button - success green */
+.death-cap-saute .revive-member {
+  background: var(--dcs-success);
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* =============================================================================
+   QUICK ROLLS SECTION
+   Dark-themed box with roll buttons on the Team tab.
+   Provides easy access to common dice rolls.
+============================================================================= */
+
+.death-cap-saute .quick-rolls {
+  background: var(--dcs-primary);
+  color: white;
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.death-cap-saute .quick-rolls h3 {
+  color: white;
+  margin: 0 0 0.5rem 0;
+}
+
+/* Flex container for roll buttons */
+.death-cap-saute .roll-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap; /* Allows wrapping on narrow screens */
+}
+
+/* Roll buttons use accent color to stand out on dark background */
+.death-cap-saute .quick-rolls button {
+  background: var(--dcs-accent);
+  color: var(--dcs-primary);
+}
+
+.death-cap-saute .quick-rolls button:hover {
+  background: white;
+}
+
+/* =============================================================================
+   REFERENCE SECTIONS
+   Collapsible sections using HTML5 <details>/<summary>.
+   Used for mutations reference and wild shroomp table.
+============================================================================= */
+
+.death-cap-saute details {
+  background: rgba(0,0,0,0.05);
+  border-radius: 4px;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+/* Summary is the clickable header */
+.death-cap-saute details summary {
+  cursor: pointer;
+  font-weight: bold;
+  color: var(--dcs-primary);
+}
+
+/* List container inside details */
+.death-cap-saute .mutations-list,
+.death-cap-saute .wild-shroomp-list {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
+/* Individual reference items with dotted separator */
+.death-cap-saute .mutation-ref,
+.death-cap-saute .wild-shroomp-ref {
+  padding: 0.25rem 0;
+  border-bottom: 1px dotted var(--dcs-border);
+}
+
+/* =============================================================================
+   CHALLENGE CARDS
+   Each of the 5 cooking challenges is displayed as a card.
+   Cards have a header with buttons and a body with dice inputs.
+============================================================================= */
+
+/* Challenge card container */
+.death-cap-saute .challenge-card {
+  background: white;
+  border: 2px solid var(--dcs-border);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  overflow: hidden; /* Ensures header corners are clipped */
+}
+
+/* Completed challenges get green border */
+.death-cap-saute .challenge-card.completed {
+  border-color: var(--dcs-success);
+}
+
+/* Challenge header - dark background with location name and buttons */
+.death-cap-saute .challenge-header {
+  background: var(--dcs-primary);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.death-cap-saute .challenge-header h3 {
+  color: white;
+  margin: 0;
+  font-size: 1rem;
+}
+
+/* Challenge number uses accent color */
+.death-cap-saute .challenge-number {
+  color: var(--dcs-accent);
+}
+
+/* Hazard range text - subtle and smaller */
+.death-cap-saute .hazard-range {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  font-weight: normal;
+}
+
+/* Container for action buttons (introduce, shroomp roll, hazard roll) */
+.death-cap-saute .challenge-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.death-cap-saute .challenge-actions button {
+  background: var(--dcs-secondary);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+/* Challenge body - contains all the input fields */
+.death-cap-saute .challenge-body {
+  padding: 0.75rem;
+}
+
+/* Dish theme and shroomp requirement row */
+.death-cap-saute .challenge-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+/* =============================================================================
+   DICE GRID
+   The 5 dice inputs: Presentation, Flavor, Originality, Hazard 1, Hazard 2.
+   First 3 are "dish dice" (green), last 2 are "hazard dice" (red).
+============================================================================= */
+
+/* Flex container centers the dice and allows wrapping */
+.death-cap-saute .dice-grid {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin: 0.75rem 0;
+  flex-wrap: wrap;
+}
+
+/* Individual dice group (label + input) */
+.death-cap-saute .dice-group {
+  text-align: center;
+}
+
+.death-cap-saute .dice-group label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+/* Dish dice labels are green (positive scoring) */
+.death-cap-saute .dice-group.dish-dice label {
+  color: var(--dcs-success);
+}
+
+/* Hazard dice labels are red (danger!) */
+.death-cap-saute .dice-group.hazard-dice label {
+  color: var(--dcs-danger);
+}
+
+/* Dice input boxes - large and bold */
+.death-cap-saute .dice-group input {
+  width: 50px;
+  height: 40px;
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+/* Color-coded borders match the labels */
+.death-cap-saute .dice-group.dish-dice input {
+  border-color: var(--dcs-success);
+}
+
+.death-cap-saute .dice-group.hazard-dice input {
+  border-color: var(--dcs-danger);
+}
+
+/* =============================================================================
+   CHALLENGE TOTALS
+   Displays calculated dish total and hazard total for each challenge.
+   Shown below the dice grid.
+============================================================================= */
+
+.death-cap-saute .challenge-totals {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  padding: 0.5rem;
+  background: rgba(0,0,0,0.05);
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+/* Dish total is green */
+.death-cap-saute .dish-total {
+  color: var(--dcs-success);
+}
+
+/* Hazard total is red */
+.death-cap-saute .hazard-total {
+  color: var(--dcs-danger);
+}
+
+/* Hazard name and penalty fields */
+.death-cap-saute .hazard-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* =============================================================================
+   CHALLENGE STATUS CHECKBOXES
+   "Earned Shroomp" and "Challenge Complete" checkboxes.
+   Uses custom styling for better visual feedback.
+============================================================================= */
+
+.death-cap-saute .challenge-status {
+  display: flex;
+  gap: 1rem;
+  margin: 0.5rem 0;
+  justify-content: center;
+}
+
+/* Checkbox label - clickable area includes icon */
+.death-cap-saute .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  cursor: pointer;
+}
+
+.death-cap-saute .checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+
+/* Shroomp icon uses purple */
+.death-cap-saute .checkbox-label .fa-mushroom {
+  color: var(--dcs-shroomp);
+}
+
+/* Check icon uses green */
+.death-cap-saute .checkbox-label .fa-check {
+  color: var(--dcs-success);
+}
+
+/* =============================================================================
+   TOTALS TAB
+   Final scores display with category totals and shroomp count.
+   Uses a card-based layout for the three categories.
+============================================================================= */
+
+/* 3-column grid for category cards */
+.death-cap-saute .totals-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Individual total card */
+.death-cap-saute .total-card {
+  background: white;
+  border: 2px solid var(--dcs-border);
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.death-cap-saute .total-card h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+}
+
+/* Large score display */
+.death-cap-saute .total-card .total-value {
+  display: block;
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--dcs-primary);
+  margin-bottom: 0.5rem;
+}
+
+/* Color-coded borders for each category */
+.death-cap-saute .total-card.presentation {
+  border-color: #4a90d9; /* Blue */
+}
+
+.death-cap-saute .total-card.flavor {
+  border-color: #d94a4a; /* Red */
+}
+
+.death-cap-saute .total-card.originality {
+  border-color: #4ad94a; /* Green */
+}
+
+/* Bonus checkbox styling */
+.death-cap-saute .bonus-checkbox {
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+/* =============================================================================
+   WILD SHROOMP SECTION
+   Special section for the end-game Wild Shroomp bonus roll.
+   Uses purple theme to match the shroomp aesthetic.
+============================================================================= */
+
+.death-cap-saute .wild-shroomp-section {
+  /* Purple gradient background */
+  background: linear-gradient(135deg, #d8c8e8, #c8b8d8);
+  border: 2px solid var(--dcs-shroomp);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.death-cap-saute .wild-shroomp-section h3 {
+  color: var(--dcs-shroomp);
+  margin-top: 0;
+}
+
+/* =============================================================================
+   FINAL SHROOMPS DISPLAY
+   The big score reveal at the bottom of the Totals tab.
+   Purple background with large white text.
+============================================================================= */
+
+.death-cap-saute .final-shroomps {
+  background: var(--dcs-shroomp);
+  color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.death-cap-saute .final-shroomps h2 {
+  color: white;
+  border: none;
+  margin: 0;
+}
+
+/* Extra large number for impact */
+.death-cap-saute .shroomp-total {
+  font-size: 2rem;
+}
+
+/* =============================================================================
+   CHAT MESSAGE STYLES
+   Styles for messages posted to the Foundry chat log.
+   These are used by the actor's roll methods (rollChallengeDice, etc.)
+============================================================================= */
+
+/* Base roll message container */
+.dcs-roll {
+  padding: 0.75rem;
+  background: var(--dcs-background);
+  border-radius: 4px;
+  /* Colored left border indicates roll type */
+  border-left: 4px solid var(--dcs-secondary);
+  margin: 0.25rem 0;
+}
+
+.dcs-roll h3 {
+  margin: 0 0 0.5rem 0;
+  color: var(--dcs-primary);
+  font-size: 1rem;
+}
+
+.dcs-roll .hint {
+  font-size: 0.85rem;
+  color: #666;
+  font-style: italic;
+  margin-top: 0.5rem;
+}
+
+/* Dice results display - row of dice faces */
+.dcs-roll .dice-results {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin: 0.5rem 0;
+}
+
+/* Individual die display - styled like a die face */
+.dcs-roll .die {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--dcs-primary);
+  color: white;
+  font-size: 1.25rem;
+  font-weight: bold;
+  border-radius: 6px;
+}
+
+/* Shroomp table rolls have purple border */
+.dcs-roll.shroomp-table {
+  border-color: var(--dcs-shroomp);
+}
+
+/* Hazard table rolls have red border */
+.dcs-roll.hazard-table {
+  border-color: var(--dcs-danger);
+}
+
+/* Wild shroomp rolls have purple border and gradient background */
+.dcs-roll.wild-shroomp {
+  border-color: var(--dcs-shroomp);
+  background: linear-gradient(135deg, #f5f0e6, #e8d8f0);
+}
+
+/* Location introduction message */
+.dcs-location-intro {
+  padding: 0.75rem;
+  background: linear-gradient(135deg, #e8e0d0, #d8d0c0);
+  border-radius: 8px;
+  border: 2px solid var(--dcs-primary);
+}
+
+.dcs-location-intro h2 {
+  color: var(--dcs-primary);
+  margin: 0 0 0.5rem 0;
+}
+
+.dcs-location-intro .flavor-text {
+  font-style: italic;
+  margin-bottom: 0.5rem;
+}
+
+.dcs-location-intro h3 {
+  color: var(--dcs-secondary);
+  margin: 0.5rem 0 0.25rem 0;
+}
+
+.dcs-location-intro .hazard-range {
+  color: var(--dcs-danger);
+  font-weight: bold;
+}
+
+/* Death announcement message */
+.dcs-death {
+  padding: 0.5rem;
+  background: #ffe0e0;
+  border-left: 4px solid var(--dcs-danger);
+  border-radius: 4px;
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN
+   Adjustments for smaller screens (narrow windows).
+   Switches from multi-column to single-column layouts.
+============================================================================= */
+
+@media (max-width: 700px) {
+  /* Stack team members vertically */
+  .death-cap-saute .team-members-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Stack total cards vertically */
+  .death-cap-saute .totals-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Stack challenge info vertically */
+  .death-cap-saute .challenge-info {
+    grid-template-columns: 1fr;
+  }
+}

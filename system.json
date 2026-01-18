@@ -1,0 +1,36 @@
+{
+  "id": "death-cap-saute",
+  "title": "Death Cap Saute",
+  "description": "A culinary competition TTRPG where chefs collect dangerous mushrooms (Shroomps) and create amazing dishes.",
+  "version": "1.0.0",
+  "compatibility": {
+    "minimum": "11",
+    "verified": "12"
+  },
+  "authors": [
+    {
+      "name": "Your Name",
+      "url": ""
+    }
+  ],
+  "esmodules": ["module/death-cap-saute.mjs"],
+  "styles": ["css/death-cap-saute.css"],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "primaryTokenAttribute": null,
+  "secondaryTokenAttribute": null,
+  "grid": {
+    "distance": 5,
+    "units": "ft"
+  },
+  "socket": false,
+  "url": "",
+  "manifest": "",
+  "download": "",
+  "template": "template.json"
+}

@@ -1,0 +1,448 @@
+{{!--
+  ============================================================================
+  DEATH CAP SAUTE - Restaurant Sheet Template
+  ============================================================================
+
+  This is a Handlebars template that defines the HTML structure of our actor sheet.
+  Foundry VTT uses Handlebars for templating - it lets us mix HTML with dynamic
+  data from our actor.
+
+  HANDLEBARS BASICS:
+  - {{variable}}           - Output a variable's value (escaped for safety)
+  - {{{rawHtml}}}          - Output raw HTML (unescaped - use carefully!)
+  - {{#if condition}}...{{/if}}  - Conditional rendering
+  - {{#each array}}...{{/each}}  - Loop through arrays
+  - {{!-- comment --}}     - Template comments (not rendered)
+
+  DATA CONTEXT:
+  Everything returned from getData() in restaurant-sheet.mjs is available here:
+  - actor: The actor document (actor.name, actor.img, etc.)
+  - system: The actor's system data (system.teamMembers, system.challenges, etc.)
+  - config: The CONFIG.DCS object (all game data)
+  - mutationOptions: Array of mutations for dropdowns
+  - challengeData: Processed challenge data with location info
+  - aliveCount, deadCount, isEliminated: Derived values
+
+  FOUNDRY SHEET CONVENTIONS:
+  - Wrap everything in a <form> with class="{{cssClass}}"
+  - Input names like "system.fieldPath" auto-save when changed
+  - data-edit="img" on images enables the file picker
+  - data-tab and data-group handle tab switching automatically
+--}}
+
+{{!-- ========================================================================
+  MAIN FORM WRAPPER
+  The form wraps the entire sheet. When inputs change, Foundry automatically
+  saves them to the actor's data based on the input's name attribute.
+  Adding "eliminated" class when all team members are dead for styling.
+========================================================================= --}}
+<form class="{{cssClass}} {{#if isEliminated}}eliminated{{/if}}" autocomplete="off">
+
+  {{!-- ======================================================================
+    SHEET HEADER
+    Displays the restaurant's image, name, shroomp count, and team status.
+    The profile image has data-edit="img" which enables Foundry's file picker.
+  ======================================================================== --}}
+  <header class="sheet-header">
+    {{!-- Profile image with click-to-change functionality --}}
+    <img class="profile-img" src="{{actor.img}}" data-edit="img"
+         title="{{actor.name}}" height="80" width="80"/>
+    <div class="header-fields">
+      {{!-- Editable restaurant name - the name="name" makes it auto-save --}}
+      <h1 class="restaurant-name">
+        <input name="name" type="text" value="{{actor.name}}"
+               placeholder="Restaurant Name"/>
+      </h1>
+      {{!-- Quick stats display showing shroomps and team status --}}
+      <div class="header-stats">
+        <span class="shroomp-count" title="Total Shroomps">
+          <i class="fas fa-mushroom"></i> {{system.totals.shroomps}}
+        </span>
+        <span class="team-status" title="Team Status">
+          <i class="fas fa-users"></i> {{aliveCount}}/3 alive
+        </span>
+      </div>
+    </div>
+  </header>
+
+  {{!-- ======================================================================
+    TAB NAVIGATION
+    Foundry's tab system: data-group identifies the tab set, data-tab
+    identifies individual tabs. The content sections below have matching
+    data-tab attributes.
+  ======================================================================== --}}
+  <nav class="sheet-tabs tabs" data-group="primary">
+    <a class="item" data-tab="team"><i class="fas fa-users"></i> Team</a>
+    <a class="item" data-tab="challenges"><i class="fas fa-utensils"></i> Challenges</a>
+    <a class="item" data-tab="totals"><i class="fas fa-trophy"></i> Totals</a>
+  </nav>
+
+  {{!-- ======================================================================
+    SHEET BODY - Contains all tab content
+  ======================================================================== --}}
+  <section class="sheet-body">
+
+    {{!-- ==================================================================
+      TEAM TAB
+      Shows the 3 team members, their mutations, and alive/dead status.
+      Also includes quick roll buttons and a mutations reference.
+    =================================================================== --}}
+    <div class="tab team" data-group="primary" data-tab="team">
+
+      <h2>Culinary Team</h2>
+      <p class="hint">Each team member has a unique Mutation ability. You may use one Mutation per Challenge (if that member is alive).</p>
+
+      {{!-- Team Members Grid - Uses #each to loop through teamMembers array --}}
+      <div class="team-members-grid">
+        {{!--
+          Loop through team members. In {{#each}}, we get:
+          - "member" as the current item (the |member| part)
+          - "idx" as the current index (the |idx| part)
+          - @root to access the parent context
+        --}}
+        {{#each system.teamMembers as |member idx|}}
+        {{!--
+          deadClass helper returns "" if alive, "dead" if not.
+          data-index stores which member this is for event handlers.
+        --}}
+        <div class="team-member {{deadClass member.alive}}" data-index="{{idx}}">
+          <div class="member-header">
+            {{!-- math helper adds 1 to convert 0-based index to 1-based display --}}
+            <span class="member-number">#{{math idx "+" 1}}</span>
+            {{!-- Conditional status display --}}
+            {{#if member.alive}}
+              <span class="status alive"><i class="fas fa-heart"></i> Alive</span>
+            {{else}}
+              <span class="status dead"><i class="fas fa-skull"></i> Dead</span>
+            {{/if}}
+          </div>
+
+          {{!--
+            Name input: name="system.teamMembers.{{idx}}.name"
+            This path format tells Foundry exactly where to save the data.
+            The {{idx}} gets replaced with 0, 1, or 2 during rendering.
+          --}}
+          <div class="form-group">
+            <label>Name</label>
+            <input type="text" name="system.teamMembers.{{idx}}.name"
+                   value="{{member.name}}" placeholder="Team member name..."
+                   {{!-- Disable input if member is dead --}}
+                   {{#unless member.alive}}disabled{{/unless}}/>
+          </div>
+
+          {{!--
+            Mutation dropdown: Loops through mutationOptions from getData()
+            Uses the eq helper to check if this mutation is currently selected.
+          --}}
+          <div class="form-group">
+            <label>Mutation</label>
+            <select name="system.teamMembers.{{idx}}.mutation"
+                    {{#unless member.alive}}disabled{{/unless}}>
+              <option value="">-- Select Mutation --</option>
+              {{!--
+                @root.mutationOptions accesses mutationOptions from the root context
+                (the data returned by getData()) rather than the current loop context.
+              --}}
+              {{#each @root.mutationOptions as |mut|}}
+                {{!-- eq helper compares two values for equality --}}
+                <option value="{{mut.key}}" {{#if (eq mut.key member.mutation)}}selected{{/if}}>
+                  {{mut.label}}
+                </option>
+              {{/each}}
+            </select>
+          </div>
+
+          {{!--
+            Show mutation description if one is selected.
+            getMutation is a custom helper that looks up mutation data from CONFIG.DCS
+            #with creates a new context block with the mutation data.
+          --}}
+          {{#if member.mutation}}
+          <div class="mutation-description">
+            {{#with (getMutation member.mutation)}}
+              <p><strong>{{label}}:</strong> {{description}}</p>
+            {{/with}}
+          </div>
+          {{/if}}
+
+          {{!-- Kill/Revive buttons - JavaScript handlers in restaurant-sheet.mjs --}}
+          <div class="member-actions">
+            {{#if member.alive}}
+              <button type="button" class="kill-member" data-index="{{idx}}" title="Kill this team member">
+                <i class="fas fa-skull-crossbones"></i> Kill
+              </button>
+            {{else}}
+              <button type="button" class="revive-member" data-index="{{idx}}" title="Revive (for corrections)">
+                <i class="fas fa-heart"></i> Revive
+              </button>
+            {{/if}}
+          </div>
+        </div>
+        {{/each}}
+      </div>
+
+      {{!-- Quick Roll Buttons Section --}}
+      <div class="quick-rolls">
+        <h3>Quick Rolls</h3>
+        <div class="roll-buttons">
+          {{!--
+            type="button" is important! Without it, buttons in forms default to
+            type="submit" which would try to submit the form instead of running
+            our click handler.
+          --}}
+          <button type="button" class="roll-challenge-dice">
+            <i class="fas fa-dice"></i> Roll 5d6 (Challenge Dice)
+          </button>
+          {{!-- data-purpose is read by the click handler to label the roll --}}
+          <button type="button" class="roll-single-die" data-purpose="Mutation Roll">
+            <i class="fas fa-dice-one"></i> Roll 1d6 (Mutation)
+          </button>
+        </div>
+      </div>
+
+      {{!--
+        Mutations Reference - Collapsible section using HTML5 <details>/<summary>.
+        Loops through all mutations from config to show their descriptions.
+      --}}
+      <details class="mutations-reference">
+        <summary><i class="fas fa-book"></i> Mutations Reference</summary>
+        <div class="mutations-list">
+          {{!-- Loop through mutations object. Key is the mutation id, mut is the data --}}
+          {{#each config.mutations as |mut key|}}
+          <div class="mutation-ref">
+            <strong>{{mut.label}}:</strong> {{mut.description}}
+          </div>
+          {{/each}}
+        </div>
+      </details>
+
+    </div>
+
+    {{!-- ==================================================================
+      CHALLENGES TAB
+      Shows all 5 cooking challenges with dice inputs, roll buttons,
+      and status tracking. Each challenge is a card.
+    =================================================================== --}}
+    <div class="tab challenges" data-group="primary" data-tab="challenges">
+
+      <h2>Cooking Challenges</h2>
+
+      {{!--
+        Loop through challengeData prepared in restaurant-sheet.mjs.
+        Each challenge has location info merged with saved scores.
+      --}}
+      {{#each challengeData as |challenge|}}
+      {{!-- Challenge cards get "completed" class when done for styling --}}
+      <div class="challenge-card {{#if challenge.completed}}completed{{/if}}" data-location="{{challenge.key}}">
+        <div class="challenge-header">
+          <h3>
+            <span class="challenge-number">{{challenge.order}}.</span>
+            {{challenge.label}}
+            <span class="hazard-range">(Hazard {{challenge.hazardMin}}-{{challenge.hazardMax}})</span>
+          </h3>
+          {{!-- Roll buttons for this challenge's tables --}}
+          <div class="challenge-actions">
+            {{!-- Scroll icon: Post location intro to chat --}}
+            <button type="button" class="introduce-location" data-location="{{challenge.key}}" title="Post location intro to chat">
+              <i class="fas fa-scroll"></i>
+            </button>
+            {{!-- Mushroom icon: Roll shroomp/dish theme table --}}
+            <button type="button" class="roll-shroomp-table" data-location="{{challenge.key}}" title="Roll Shroomp & Dish Theme">
+              <i class="fas fa-mushroom"></i>
+            </button>
+            {{!-- Skull icon: Roll hazard table --}}
+            <button type="button" class="roll-hazard-table" data-location="{{challenge.key}}" title="Roll Hazard">
+              <i class="fas fa-skull"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="challenge-body">
+          {{!-- Dish Theme and Shroomp Requirement - Filled in from roll results --}}
+          <div class="challenge-info">
+            <div class="form-group inline">
+              <label>Dish Theme:</label>
+              <input type="text" name="system.challenges.{{challenge.key}}.dishTheme"
+                     value="{{challenge.dishTheme}}" placeholder="From roll table..."/>
+            </div>
+            <div class="form-group inline">
+              <label>Shroomp Req:</label>
+              <input type="text" name="system.challenges.{{challenge.key}}.shroompRequirement"
+                     value="{{challenge.shroompRequirement}}" placeholder="From roll table..."/>
+            </div>
+          </div>
+
+          {{!--
+            Dice Assignment Grid
+            Players assign their 5d6 roll to these 5 slots.
+            The first 3 are dish dice (scoring), the last 2 are hazard dice.
+          --}}
+          <div class="dice-grid">
+            {{!-- Dish dice (these contribute to your dish score) --}}
+            <div class="dice-group dish-dice">
+              <label>Presentation</label>
+              <input type="number" name="system.challenges.{{challenge.key}}.presentation"
+                     value="{{challenge.presentation}}" min="0" max="6"/>
+            </div>
+            <div class="dice-group dish-dice">
+              <label>Flavor</label>
+              <input type="number" name="system.challenges.{{challenge.key}}.flavor"
+                     value="{{challenge.flavor}}" min="0" max="6"/>
+            </div>
+            <div class="dice-group dish-dice">
+              <label>Originality</label>
+              <input type="number" name="system.challenges.{{challenge.key}}.originality"
+                     value="{{challenge.originality}}" min="0" max="6"/>
+            </div>
+            {{!-- Hazard dice (need to meet/beat hazard value to survive) --}}
+            <div class="dice-group hazard-dice">
+              <label>Hazard 1</label>
+              <input type="number" name="system.challenges.{{challenge.key}}.hazard1"
+                     value="{{challenge.hazard1}}" min="1" max="6"/>
+            </div>
+            <div class="dice-group hazard-dice">
+              <label>Hazard 2</label>
+              <input type="number" name="system.challenges.{{challenge.key}}.hazard2"
+                     value="{{challenge.hazard2}}" min="1" max="6"/>
+            </div>
+          </div>
+
+          {{!-- Calculated Totals (computed in _prepareChallengeData) --}}
+          <div class="challenge-totals">
+            <span class="dish-total">Dish Total: <strong>{{challenge.dishTotal}}</strong></span>
+            <span class="hazard-total">Hazard Total: <strong>{{challenge.hazardTotal}}</strong></span>
+          </div>
+
+          {{!-- Hazard Info - Filled in from hazard roll --}}
+          <div class="hazard-info">
+            <div class="form-group inline">
+              <label>Hazard:</label>
+              <input type="text" name="system.challenges.{{challenge.key}}.hazardName"
+                     value="{{challenge.hazardName}}" placeholder="Hazard name..."/>
+            </div>
+            <div class="form-group inline">
+              <label>Penalty:</label>
+              <input type="text" name="system.challenges.{{challenge.key}}.hazardPenalty"
+                     value="{{challenge.hazardPenalty}}" placeholder="If failed..."/>
+            </div>
+          </div>
+
+          {{!--
+            Challenge Status Checkboxes
+            Note: These use custom event handlers instead of auto-save because
+            they need special handling (updating via specific data paths).
+          --}}
+          <div class="challenge-status">
+            <label class="checkbox-label">
+              {{!-- data-location tells the handler which challenge to update --}}
+              <input type="checkbox" class="shroomp-checkbox" data-location="{{challenge.key}}"
+                     {{#if challenge.earnedShroomp}}checked{{/if}}/>
+              <i class="fas fa-mushroom"></i> Earned Shroomp
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" class="complete-challenge" data-location="{{challenge.key}}"
+                     {{#if challenge.completed}}checked{{/if}}/>
+              <i class="fas fa-check"></i> Challenge Complete
+            </label>
+          </div>
+
+          {{!-- Notes field for describing dishes, hazard outcomes, etc. --}}
+          <div class="form-group">
+            <label>Notes:</label>
+            <textarea name="system.challenges.{{challenge.key}}.notes"
+                      placeholder="Describe your dish, what happened with the hazard, etc.">{{challenge.notes}}</textarea>
+          </div>
+        </div>
+      </div>
+      {{/each}}
+
+    </div>
+
+    {{!-- ==================================================================
+      TOTALS TAB
+      Shows running totals for each category, end-game bonuses,
+      wild shroomp section, and final score.
+    =================================================================== --}}
+    <div class="tab totals" data-group="primary" data-tab="totals">
+
+      <h2>Final Scores</h2>
+
+      {{!--
+        Category Totals Grid
+        Shows the running total for each category (calculated in actor.mjs)
+        with checkboxes for end-game bonus shroomps.
+      --}}
+      <div class="totals-grid">
+        <div class="total-card presentation">
+          <h3>Presentation</h3>
+          {{!-- totals.presentation is calculated automatically by prepareDerivedData() --}}
+          <span class="total-value">{{system.totals.presentation}}</span>
+          {{!-- Checkbox for if this player had the highest presentation --}}
+          <label class="bonus-checkbox">
+            <input type="checkbox" name="system.endGame.presentationBonus"
+                   {{#if system.endGame.presentationBonus}}checked{{/if}}/>
+            Highest? (+1 Shroomp)
+          </label>
+        </div>
+        <div class="total-card flavor">
+          <h3>Flavor</h3>
+          <span class="total-value">{{system.totals.flavor}}</span>
+          <label class="bonus-checkbox">
+            <input type="checkbox" name="system.endGame.flavorBonus"
+                   {{#if system.endGame.flavorBonus}}checked{{/if}}/>
+            Highest? (+1 Shroomp)
+          </label>
+        </div>
+        <div class="total-card originality">
+          <h3>Originality</h3>
+          <span class="total-value">{{system.totals.originality}}</span>
+          <label class="bonus-checkbox">
+            <input type="checkbox" name="system.endGame.originalityBonus"
+                   {{#if system.endGame.originalityBonus}}checked{{/if}}/>
+            Highest? (+1 Shroomp)
+          </label>
+        </div>
+      </div>
+
+      {{!-- Wild Shroomp Section --}}
+      <div class="wild-shroomp-section">
+        <h3>Wild Shroomp</h3>
+        {{!-- Roll button triggers actor.rollWildShroomp() --}}
+        <button type="button" class="roll-wild-shroomp">
+          <i class="fas fa-dice"></i> Roll Wild Shroomp
+        </button>
+        {{!-- Record the result name --}}
+        <div class="form-group inline">
+          <label>Result:</label>
+          <input type="text" name="system.endGame.wildShroompName"
+                 value="{{system.endGame.wildShroompName}}" placeholder="Wild Shroomp name..."/>
+        </div>
+        {{!-- Checkbox for if they earned it --}}
+        <label class="checkbox-label">
+          <input type="checkbox" name="system.endGame.wildShroomp"
+                 {{#if system.endGame.wildShroomp}}checked{{/if}}/>
+          <i class="fas fa-mushroom"></i> Earned Wild Shroomp
+        </label>
+      </div>
+
+      {{!-- Final Shroomp Count - The ultimate score! --}}
+      <div class="final-shroomps">
+        <h2>Total Shroomps: <span class="shroomp-total">{{system.totals.shroomps}}</span></h2>
+      </div>
+
+      {{!-- Wild Shroomp Table Reference --}}
+      <details class="wild-shroomp-reference">
+        <summary><i class="fas fa-book"></i> Wild Shroomp Table Reference</summary>
+        <div class="wild-shroomp-list">
+          {{#each config.wildShroompTable as |entry|}}
+          <div class="wild-shroomp-ref">
+            <strong>{{entry.roll}}. {{entry.name}}:</strong> {{entry.requirement}}
+          </div>
+          {{/each}}
+        </div>
+      </details>
+
+    </div>
+
+  </section>
+</form>

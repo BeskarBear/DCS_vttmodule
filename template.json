@@ -1,0 +1,119 @@
+{
+  "Actor": {
+    "types": ["restaurant"],
+    "restaurant": {
+      "teamMembers": [
+        {
+          "name": "",
+          "mutation": "",
+          "alive": true
+        },
+        {
+          "name": "",
+          "mutation": "",
+          "alive": true
+        },
+        {
+          "name": "",
+          "mutation": "",
+          "alive": true
+        }
+      ],
+      "challenges": {
+        "saltyDesert": {
+          "completed": false,
+          "presentation": 0,
+          "flavor": 0,
+          "originality": 0,
+          "hazard1": 0,
+          "hazard2": 0,
+          "dishTheme": "",
+          "shroompRequirement": "",
+          "earnedShroomp": false,
+          "survivedHazard": true,
+          "hazardName": "",
+          "hazardPenalty": "",
+          "notes": ""
+        },
+        "kingsCourt": {
+          "completed": false,
+          "presentation": 0,
+          "flavor": 0,
+          "originality": 0,
+          "hazard1": 0,
+          "hazard2": 0,
+          "dishTheme": "",
+          "shroompRequirement": "",
+          "earnedShroomp": false,
+          "survivedHazard": true,
+          "hazardName": "",
+          "hazardPenalty": "",
+          "notes": ""
+        },
+        "onionSwamp": {
+          "completed": false,
+          "presentation": 0,
+          "flavor": 0,
+          "originality": 0,
+          "hazard1": 0,
+          "hazard2": 0,
+          "dishTheme": "",
+          "shroompRequirement": "",
+          "earnedShroomp": false,
+          "survivedHazard": true,
+          "hazardName": "",
+          "hazardPenalty": "",
+          "notes": ""
+        },
+        "meltedMountain": {
+          "completed": false,
+          "presentation": 0,
+          "flavor": 0,
+          "originality": 0,
+          "hazard1": 0,
+          "hazard2": 0,
+          "dishTheme": "",
+          "shroompRequirement": "",
+          "earnedShroomp": false,
+          "survivedHazard": true,
+          "hazardName": "",
+          "hazardPenalty": "",
+          "notes": ""
+        },
+        "shroompLair": {
+          "completed": false,
+          "presentation": 0,
+          "flavor": 0,
+          "originality": 0,
+          "hazard1": 0,
+          "hazard2": 0,
+          "dishTheme": "",
+          "shroompRequirement": "",
+          "earnedShroomp": false,
+          "survivedHazard": true,
+          "hazardName": "",
+          "hazardPenalty": "",
+          "notes": ""
+        }
+      },
+      "endGame": {
+        "presentationBonus": false,
+        "flavorBonus": false,
+        "originalityBonus": false,
+        "wildShroomp": false,
+        "wildShroompName": ""
+      },
+      "totals": {
+        "presentation": 0,
+        "flavor": 0,
+        "originality": 0,
+        "shroomps": 0
+      },
+      "currentChallenge": "saltyDesert",
+      "eliminated": false
+    }
+  },
+  "Item": {
+    "types": []
+  }
+}
