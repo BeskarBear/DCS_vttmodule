@@ -126,17 +126,13 @@ Hooks.once("init", async function() {
   // -------------------------------------------------------------------------
   /**
    * "Sheets" are the UI windows that display when you open an Actor.
-   * We need to:
-   * 1. Unregister Foundry's default sheet (so it doesn't show up as an option)
-   * 2. Register our custom sheet(s)
+   * We register our custom ApplicationV2 sheet here.
    *
    * The registerSheet() options:
    * - types: Which actor types this sheet handles (from template.json)
    * - makeDefault: Whether this is the default sheet for that type
    * - label: Display name shown in the sheet selection dropdown
    */
-  Actors.unregisterSheet("core", ActorSheet);  // Remove default sheet
-
   Actors.registerSheet("death-cap-saute", RestaurantSheet, {
     types: ["restaurant"],  // This sheet is for "restaurant" type actors
     makeDefault: true,      // Automatically use this sheet for new restaurants

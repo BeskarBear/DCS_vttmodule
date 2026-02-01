@@ -68,6 +68,26 @@
   font-family: "Signika", sans-serif;
 }
 
+/* ApplicationV2 window frame styling - ensure window controls display properly */
+.death-cap-saute.sheet .window-header {
+  background: var(--dcs-primary);
+}
+
+/* Ensure window control buttons aren't affected by our button styling */
+.death-cap-saute.sheet .window-header .window-control,
+.death-cap-saute.sheet .window-header button {
+  background: transparent;
+  color: var(--dcs-background);
+  border: none;
+  padding: 0;
+}
+
+.death-cap-saute.sheet .window-header .window-control:hover,
+.death-cap-saute.sheet .window-header button:hover {
+  background: rgba(255,255,255,0.2);
+  color: white;
+}
+
 /* When all team members are dead, the sheet becomes semi-transparent
    to visually indicate elimination from the competition */
 .death-cap-saute.sheet.eliminated {
@@ -291,10 +311,11 @@
 /* =============================================================================
    BUTTONS
    Primary button styling used throughout the sheet.
-   All buttons share a consistent look with hover states.
+   Target only buttons inside the form content, not the window header.
 ============================================================================= */
 
-.death-cap-saute button {
+.death-cap-saute form button,
+.death-cap-saute .sheet-body button {
   background: var(--dcs-secondary);
   color: white;
   border: none;
@@ -306,12 +327,14 @@
 }
 
 /* Hover darkens the button */
-.death-cap-saute button:hover {
+.death-cap-saute form button:hover,
+.death-cap-saute .sheet-body button:hover {
   background: var(--dcs-primary);
 }
 
-/* Icon spacing inside buttons */
-.death-cap-saute button i {
+/* Icon spacing inside form buttons */
+.death-cap-saute form button i,
+.death-cap-saute .sheet-body button i {
   margin-right: 0.25rem;
 }
 
@@ -391,14 +414,14 @@
 }
 
 /* Kill button - danger red */
-.death-cap-saute .kill-member {
+.death-cap-saute [data-action="killMember"] {
   background: var(--dcs-danger);
   font-size: 0.8rem;
   padding: 0.25rem 0.5rem;
 }
 
 /* Revive button - success green */
-.death-cap-saute .revive-member {
+.death-cap-saute [data-action="reviveMember"] {
   background: var(--dcs-success);
   font-size: 0.8rem;
   padding: 0.25rem 0.5rem;

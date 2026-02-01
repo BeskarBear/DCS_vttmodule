@@ -110,13 +110,28 @@ export class DCSActor extends Actor {
    */
 
   /**
+   * Get teamMembers as an array, whether stored as array or object.
+   * Foundry's form handling can convert arrays to objects when using
+   * dot notation in form field names (e.g., "system.teamMembers.0.name").
+   * @returns {Array} Array of team member objects
+   * @private
+   */
+  get _teamMembersArray() {
+    const members = this.system.teamMembers;
+    if (!members) return [];
+    if (Array.isArray(members)) return members;
+    // Convert object with numeric keys to array
+    return Object.values(members);
+  }
+
+  /**
    * Count how many team members are still alive.
    * @returns {number} Number of alive team members (0-3)
    */
   get aliveTeamMembers() {
     // filter() creates a new array with only elements that pass the test
     // The arrow function (m => m.alive) returns true for alive members
-    return (this.system.teamMembers || []).filter(m => m.alive).length;
+    return this._teamMembersArray.filter(m => m.alive).length;
   }
 
   /**
@@ -124,7 +139,7 @@ export class DCSActor extends Actor {
    * @returns {number} Number of dead team members (0-3)
    */
   get deadTeamMembers() {
-    return (this.system.teamMembers || []).filter(m => !m.alive).length;
+    return this._teamMembersArray.filter(m => !m.alive).length;
   }
 
   /**
@@ -184,13 +199,10 @@ export class DCSActor extends Actor {
 
     // Create a chat message to display the roll
     await ChatMessage.create({
-      // getSpeaker() creates a speaker object identifying who's speaking
       speaker: ChatMessage.getSpeaker({ actor: this }),
       content: messageContent,
       // Including the roll object enables Foundry's dice animation and roll display
-      rolls: [roll],
-      // ROLL type messages get special formatting in chat
-      type: CONST.CHAT_MESSAGE_TYPES.ROLL
+      rolls: [roll]
     });
 
     // Return both the Roll object and the extracted results
@@ -235,8 +247,7 @@ export class DCSActor extends Actor {
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: this }),
       content: messageContent,
-      rolls: [roll],
-      type: CONST.CHAT_MESSAGE_TYPES.ROLL
+      rolls: [roll]
     });
 
     return tableEntry;
@@ -283,8 +294,7 @@ export class DCSActor extends Actor {
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: this }),
       content: messageContent,
-      rolls: [roll],
-      type: CONST.CHAT_MESSAGE_TYPES.ROLL
+      rolls: [roll]
     });
 
     // Use spread operator (...) to copy tableEntry and add effectiveValue
@@ -317,8 +327,7 @@ export class DCSActor extends Actor {
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: this }),
       content: messageContent,
-      rolls: [roll],
-      type: CONST.CHAT_MESSAGE_TYPES.ROLL
+      rolls: [roll]
     });
 
     return tableEntry;
@@ -345,8 +354,7 @@ export class DCSActor extends Actor {
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: this }),
       content: messageContent,
-      rolls: [roll],
-      type: CONST.CHAT_MESSAGE_TYPES.ROLL
+      rolls: [roll]
     });
 
     return roll.total;

@@ -1,160 +1,224 @@
 /**
  * ============================================================================
- * DEATH CAP SAUTE - Restaurant Sheet Class
+ * DEATH CAP SAUTE - Restaurant Sheet Class (ApplicationV2)
  * ============================================================================
  *
- * This file defines RestaurantSheet, our custom ActorSheet class that creates
- * the UI for restaurant actors.
+ * This file defines RestaurantSheet using Foundry's V2 Application framework.
+ * V2 is the modern API introduced in Foundry v12 and required from v16+.
  *
- * WHAT IS AN ACTORSHEET?
- * In Foundry VTT, every Actor has a "sheet" - a window that opens when you
- * double-click the actor. The sheet displays data and provides UI for editing.
- *
- * ActorSheet is Foundry's base class for these windows. By extending it, we can:
- * 1. Use our own HTML template (the .hbs file)
- * 2. Prepare custom data for the template
- * 3. Add our own event listeners (button clicks, etc.)
- * 4. Control the sheet's appearance and behavior
- *
- * The sheet is registered in death-cap-saute.mjs:
- *   Actors.registerSheet("death-cap-saute", RestaurantSheet, {...});
+ * KEY DIFFERENCES FROM V1:
+ * - Uses static DEFAULT_OPTIONS instead of static get defaultOptions()
+ * - Uses static PARTS to define template sections
+ * - Uses _prepareContext() instead of getData()
+ * - Uses _onRender() instead of activateListeners()
+ * - Event handling uses native DOM instead of jQuery
  */
-export class RestaurantSheet extends ActorSheet {
+
+const { ActorSheetV2 } = foundry.applications.sheets;
+const { HandlebarsApplicationMixin } = foundry.applications.api;
+
+/**
+ * RestaurantSheet - The character sheet for restaurant actors.
+ *
+ * We extend ActorSheetV2 and mix in HandlebarsApplicationMixin to get
+ * Handlebars template rendering support.
+ */
+export class RestaurantSheet extends HandlebarsApplicationMixin(ActorSheetV2) {
 
   // ==========================================================================
-  // STATIC OPTIONS
+  // STATIC CONFIGURATION
   // ==========================================================================
+
   /**
-   * defaultOptions is a static getter that defines the sheet's configuration.
-   * Foundry calls this when creating the sheet to get its settings.
-   *
-   * IMPORTANT: This is a static getter, not a regular method!
-   * Static means it belongs to the class itself, not instances.
-   * Getter means it's accessed like a property: RestaurantSheet.defaultOptions
-   *
-   * We use foundry.utils.mergeObject() to combine our options with the
-   * parent class defaults, ensuring we don't lose any base functionality.
+   * Default application options. In V2, this is a static property, not a getter.
+   * We use Object.assign to merge with parent defaults.
    */
-  static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
-      // CSS classes applied to the sheet window
-      // These let us style this sheet specifically in our CSS
-      classes: ["death-cap-saute", "sheet", "actor", "restaurant"],
+  static DEFAULT_OPTIONS = {
+    // CSS classes applied to the application window
+    classes: ["death-cap-saute", "sheet", "actor", "restaurant"],
 
-      // Path to our Handlebars template (relative to Foundry's Data folder)
-      template: "systems/death-cap-saute/templates/actor/restaurant-sheet.hbs",
-
-      // Default window dimensions in pixels
+    // Position and dimensions
+    position: {
       width: 750,
-      height: 900,
+      height: 900
+    },
 
-      // Tab configuration for the navigation
-      // navSelector: CSS selector for the tab navigation element
-      // contentSelector: CSS selector for the tab content container
-      // initial: Which tab to show when the sheet first opens
-      tabs: [{
-        navSelector: ".sheet-tabs",
-        contentSelector: ".sheet-body",
-        initial: "team"
-      }]
-    });
-  }
+    // Window configuration
+    window: {
+      resizable: true
+    },
+
+    // Actions define event handlers for elements with data-action attributes
+    actions: {
+      rollChallengeDice: RestaurantSheet.#onRollChallengeDice,
+      rollShroompTable: RestaurantSheet.#onRollShroompTable,
+      rollHazardTable: RestaurantSheet.#onRollHazardTable,
+      rollWildShroomp: RestaurantSheet.#onRollWildShroomp,
+      rollSingleDie: RestaurantSheet.#onRollSingleDie,
+      introduceLocation: RestaurantSheet.#onIntroduceLocation,
+      killMember: RestaurantSheet.#onKillMember,
+      reviveMember: RestaurantSheet.#onReviveMember,
+      editImage: RestaurantSheet.#onEditImage
+    },
+
+    // Form configuration
+    form: {
+      submitOnChange: true
+    }
+  };
+
+  /**
+   * Template parts define the sections of our sheet.
+   * Each part can have its own template and be re-rendered independently.
+   */
+  static PARTS = {
+    // Main sheet template - contains the entire sheet
+    sheet: {
+      template: "systems/death-cap-saute/templates/actor/restaurant-sheet.hbs"
+    }
+  };
+
+  /**
+   * Configure tabs for the sheet.
+   * V2 uses a different tab configuration format.
+   */
+  tabGroups = {
+    primary: "team"
+  };
 
   // ==========================================================================
   // DATA PREPARATION
   // ==========================================================================
+
   /**
-   * getData() prepares all the data that will be available in our template.
-   * Foundry calls this every time the sheet needs to render.
-   *
-   * TEMPLATE CONTEXT:
-   * Whatever we return from getData() becomes the "context" in our .hbs template.
-   * For example, if we return { foo: "bar" }, we can use {{foo}} in the template.
-   *
-   * @returns {Object} The data context for the Handlebars template
+   * The window title for the application.
+   * @returns {string}
    */
-  async getData() {
-    // Get the base data from the parent ActorSheet class
-    // This includes things like actor, data, editable, etc.
-    const context = await super.getData();
+  get title() {
+    return this.actor.name || "Restaurant";
+  }
+
+  /**
+   * Prepare the data context for rendering.
+   * This replaces getData() from V1.
+   *
+   * @param {object} options - Rendering options
+   * @returns {Promise<object>} The context object for the template
+   */
+  async _prepareContext(options) {
+    // Get base context from parent class
+    const context = await super._prepareContext(options);
 
     // Get a clean copy of the actor's data
-    // toObject(false) means don't include derived data, just the raw stored data
     const actorData = this.actor.toObject(false);
 
+    // Add the actor reference for template access (V2 doesn't include this by default)
+    context.actor = this.actor;
+
     // Add the system data to context for easy access in templates
-    // Now we can use {{system.teamMembers}} instead of {{actor.system.teamMembers}}
     context.system = actorData.system;
 
     // Add our game configuration so templates can access mutations, locations, etc.
-    // This lets us iterate over CONFIG.DCS.mutations in the template
     context.config = CONFIG.DCS;
 
-    // Flag to check if the sheet is editable (for conditional rendering)
+    // Flag to check if the sheet is editable
     context.editable = this.isEditable;
 
     // -------------------------------------------------------------------------
     // MUTATION OPTIONS
     // -------------------------------------------------------------------------
-    // Transform the mutations config into an array for the dropdown selects.
-    // Object.entries() converts {key: value} to [[key, value], ...]
-    // Then map() transforms each entry into our desired format.
     context.mutationOptions = Object.entries(CONFIG.DCS.mutations).map(([key, data]) => ({
-      key,                      // "knifeFingers", "tongueSight", etc.
-      label: data.label,        // "Knife Fingers", "Tongue Sight", etc.
+      key,
+      label: data.label,
       description: data.description
     }));
 
     // -------------------------------------------------------------------------
     // CHALLENGE DATA
     // -------------------------------------------------------------------------
-    // Merge stored challenge data with location config for display.
-    // This gives each challenge card access to both the saved values
-    // (like presentation score) and the config info (like hazard range).
     context.challengeData = this._prepareChallengeData(context.system.challenges);
 
     // -------------------------------------------------------------------------
     // DERIVED VALUES
     // -------------------------------------------------------------------------
-    // These use the getters we defined in DCSActor
     context.aliveCount = this.actor.aliveTeamMembers;
     context.deadCount = this.actor.deadTeamMembers;
     context.isEliminated = this.actor.isEliminated;
+
+    // -------------------------------------------------------------------------
+    // TAB CONFIGURATION
+    // -------------------------------------------------------------------------
+    context.tabs = this._prepareTabs(options);
 
     return context;
   }
 
   /**
-   * Prepare challenge data by merging stored data with location configuration.
-   * This creates a complete object for each challenge with both saved scores
-   * and static location info like judge names and hazard ranges.
+   * Prepare tab configuration for the sheet.
    *
-   * @param {Object} challenges - The stored challenge data from actor.system.challenges
+   * @param {object} options - Application options
+   * @returns {object} Tab configuration
+   */
+  _prepareTabs(options) {
+    const tabs = {
+      team: {
+        id: "team",
+        group: "primary",
+        icon: "fas fa-users",
+        label: "Team",
+        active: false,
+        cssClass: ""
+      },
+      challenges: {
+        id: "challenges",
+        group: "primary",
+        icon: "fas fa-utensils",
+        label: "Challenges",
+        active: false,
+        cssClass: ""
+      },
+      totals: {
+        id: "totals",
+        group: "primary",
+        icon: "fas fa-trophy",
+        label: "Totals",
+        active: false,
+        cssClass: ""
+      }
+    };
+
+    // Set active tab
+    const activeTab = this.tabGroups.primary || "team";
+    if (tabs[activeTab]) {
+      tabs[activeTab].active = true;
+      tabs[activeTab].cssClass = "active";
+    }
+
+    return tabs;
+  }
+
+  /**
+   * Prepare challenge data by merging stored data with location configuration.
+   *
+   * @param {Object} challenges - The stored challenge data
    * @returns {Array} Array of challenge objects ready for display
    * @private
    */
   _prepareChallengeData(challenges) {
-    // Define the order challenges should appear (matches the game's progression)
     const locationOrder = ['saltyDesert', 'kingsCourt', 'onionSwamp', 'meltedMountain', 'shroompLair'];
 
-    // Map each location key to a complete challenge object
     return locationOrder.map(key => {
-      // Get the static config for this location
       const config = CONFIG.DCS.locations[key];
-      // Get any stored data for this challenge (or empty object if none)
       const data = challenges[key] || {};
 
       return {
-        key,                          // The location key for data binding
-        label: config.label,          // Display name like "Salty Desert"
-        order: config.order,          // Challenge number (1-5)
-        hazardMin: config.hazardMin,  // Minimum hazard value
-        hazardMax: config.hazardMax,  // Maximum hazard value
-        judge: config.judge,          // Judge name
-        ...data,                      // Spread in all stored data (scores, notes, etc.)
-
-        // Calculate totals for display
-        // The || 0 ensures we get numbers even if fields are empty
+        key,
+        label: config.label,
+        order: config.order,
+        hazardMin: config.hazardMin,
+        hazardMax: config.hazardMax,
+        judge: config.judge,
+        ...data,
         dishTotal: (data.presentation || 0) + (data.flavor || 0) + (data.originality || 0),
         hazardTotal: (data.hazard1 || 0) + (data.hazard2 || 0)
       };
@@ -162,169 +226,156 @@ export class RestaurantSheet extends ActorSheet {
   }
 
   // ==========================================================================
-  // EVENT LISTENERS
+  // RENDERING
   // ==========================================================================
+
   /**
-   * activateListeners() sets up all the interactive functionality for our sheet.
-   * Foundry calls this after the HTML is rendered and injected into the DOM.
+   * Called after the application is rendered.
+   * This replaces activateListeners() from V1.
+   * We use this for any DOM manipulation that can't be done with actions.
    *
-   * JQUERY AND THE HTML PARAMETER:
-   * The html parameter is a jQuery object containing our rendered template.
-   * jQuery lets us find elements and attach event handlers easily:
-   *   html.find('.some-class')  - Find all elements with that class
-   *   .click(handler)           - Attach a click handler
-   *   .change(handler)          - Attach a change handler (for inputs/checkboxes)
-   *
-   * THE BIND PATTERN:
-   * We use .bind(this) on our handler functions. This is because JavaScript
-   * loses the 'this' context when passing functions as callbacks. Without bind,
-   * 'this' inside the handler would be undefined or the DOM element.
-   * With bind, 'this' correctly refers to our RestaurantSheet instance.
-   *
-   * @param {jQuery} html - The rendered HTML as a jQuery object
+   * @param {object} context - The prepared context
+   * @param {object} options - Rendering options
    */
-  activateListeners(html) {
-    // Always call the parent's activateListeners first!
-    // This sets up Foundry's built-in functionality like form saving.
-    super.activateListeners(html);
+  _onRender(context, options) {
+    super._onRender(context, options);
 
     // Only add interactive listeners if the sheet is editable
-    // (Observers in Foundry can view sheets but not edit them)
     if (!this.isEditable) return;
 
-    // -------------------------------------------------------------------------
-    // ROLL BUTTONS
-    // -------------------------------------------------------------------------
-    // Each button class triggers a different roll method on our actor
-    html.find('.roll-challenge-dice').click(this._onRollChallengeDice.bind(this));
-    html.find('.roll-shroomp-table').click(this._onRollShroompTable.bind(this));
-    html.find('.roll-hazard-table').click(this._onRollHazardTable.bind(this));
-    html.find('.roll-wild-shroomp').click(this._onRollWildShroomp.bind(this));
-    html.find('.roll-single-die').click(this._onRollSingleDie.bind(this));
-    html.find('.introduce-location').click(this._onIntroduceLocation.bind(this));
+    // Set up checkbox change handlers (these need special handling)
+    const html = this.element;
 
-    // -------------------------------------------------------------------------
-    // TEAM MEMBER MANAGEMENT
-    // -------------------------------------------------------------------------
-    html.find('.kill-member').click(this._onKillMember.bind(this));
-    html.find('.revive-member').click(this._onReviveMember.bind(this));
+    // Shroomp checkbox toggles
+    html.querySelectorAll('.shroomp-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', this._onToggleShroomp.bind(this));
+    });
 
-    // -------------------------------------------------------------------------
-    // CHALLENGE STATUS TOGGLES
-    // -------------------------------------------------------------------------
-    // .change() fires when checkbox state changes
-    html.find('.shroomp-checkbox').change(this._onToggleShroomp.bind(this));
-    html.find('.complete-challenge').change(this._onToggleChallengeComplete.bind(this));
+    // Challenge complete checkbox toggles
+    html.querySelectorAll('.complete-challenge').forEach(checkbox => {
+      checkbox.addEventListener('change', this._onToggleChallengeComplete.bind(this));
+    });
+
+    // Tab click handling
+    html.querySelectorAll('.sheet-tabs .item').forEach(tab => {
+      tab.addEventListener('click', this._onTabClick.bind(this));
+    });
+  }
+
+  /**
+   * Handle tab clicks manually since V2 has different tab handling.
+   *
+   * @param {Event} event - The click event
+   */
+  _onTabClick(event) {
+    event.preventDefault();
+    const tab = event.currentTarget;
+    const tabName = tab.dataset.tab;
+    const group = tab.closest('.tabs').dataset.group || 'primary';
+
+    // Update tab group state
+    this.tabGroups[group] = tabName;
+
+    // Update active states in DOM
+    const tabContainer = tab.closest('.tabs');
+    tabContainer.querySelectorAll('.item').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+
+    // Update content visibility
+    const body = this.element.querySelector('.sheet-body');
+    body.querySelectorAll('.tab').forEach(content => {
+      content.classList.toggle('active', content.dataset.tab === tabName);
+    });
   }
 
   // ==========================================================================
-  // EVENT HANDLERS
+  // ACTION HANDLERS
   // ==========================================================================
   /**
-   * These methods are called when users interact with the sheet.
-   * They typically:
-   * 1. Prevent the default browser behavior (event.preventDefault())
-   * 2. Extract data from the event (which button, what data attributes)
-   * 3. Call a method on the actor to do the actual work
-   * 4. The actor's methods handle rolling dice and posting to chat
+   * In V2, actions are static methods called with the event and target.
+   * The 'this' context is bound to the application instance automatically.
    */
 
   /**
    * Handle clicking the "Roll 5d6 (Challenge Dice)" button.
-   * This is the main roll players make each cooking challenge.
-   *
-   * @param {Event} event - The click event
+   * @param {PointerEvent} event - The click event
+   * @param {HTMLElement} target - The element that triggered the action
    */
-  async _onRollChallengeDice(event) {
-    // Prevent form submission (buttons inside forms trigger submit by default)
+  static async #onRollChallengeDice(event, target) {
     event.preventDefault();
-    // Call the actor's roll method - it handles everything
     await this.actor.rollChallengeDice();
   }
 
   /**
    * Handle clicking the mushroom button to roll Shroomp/Dish Theme.
-   * Uses data-location attribute to know which location's table to roll on.
-   *
-   * @param {Event} event - The click event
+   * @param {PointerEvent} event - The click event
+   * @param {HTMLElement} target - The element that triggered the action
    */
-  async _onRollShroompTable(event) {
+  static async #onRollShroompTable(event, target) {
     event.preventDefault();
-    // Get the location from the button's data-location attribute
-    // In the template: data-location="{{challenge.key}}"
-    // Here: event.currentTarget.dataset.location
-    const location = event.currentTarget.dataset.location;
+    const location = target.dataset.location;
     await this.actor.rollShroompTable(location);
   }
 
   /**
    * Handle clicking the skull button to roll Hazard.
-   * Uses data-location attribute to know which location's table to roll on.
-   *
-   * @param {Event} event - The click event
+   * @param {PointerEvent} event - The click event
+   * @param {HTMLElement} target - The element that triggered the action
    */
-  async _onRollHazardTable(event) {
+  static async #onRollHazardTable(event, target) {
     event.preventDefault();
-    const location = event.currentTarget.dataset.location;
+    const location = target.dataset.location;
     await this.actor.rollHazardTable(location);
   }
 
   /**
-   * Handle clicking the "Roll Wild Shroomp" button (Totals tab).
-   * This determines the end-game bonus condition.
-   *
-   * @param {Event} event - The click event
+   * Handle clicking the "Roll Wild Shroomp" button.
+   * @param {PointerEvent} event - The click event
+   * @param {HTMLElement} target - The element that triggered the action
    */
-  async _onRollWildShroomp(event) {
+  static async #onRollWildShroomp(event, target) {
     event.preventDefault();
     await this.actor.rollWildShroomp();
   }
 
   /**
    * Handle clicking the "Roll 1d6 (Mutation)" button.
-   * A generic single die roll for mutations that need it.
-   *
-   * @param {Event} event - The click event
+   * @param {PointerEvent} event - The click event
+   * @param {HTMLElement} target - The element that triggered the action
    */
-  async _onRollSingleDie(event) {
+  static async #onRollSingleDie(event, target) {
     event.preventDefault();
-    // Get the purpose from data-purpose attribute (defaults to "Mutation Roll")
-    const purpose = event.currentTarget.dataset.purpose || "Mutation Roll";
+    const purpose = target.dataset.purpose || "Mutation Roll";
     await this.actor.rollSingleDie(purpose);
   }
 
   /**
-   * Handle clicking the scroll button to post location intro to chat.
-   * This reads out the location's flavor text and judge info.
-   *
-   * @param {Event} event - The click event
+   * Handle clicking the scroll button to post location intro.
+   * @param {PointerEvent} event - The click event
+   * @param {HTMLElement} target - The element that triggered the action
    */
-  async _onIntroduceLocation(event) {
+  static async #onIntroduceLocation(event, target) {
     event.preventDefault();
-    const location = event.currentTarget.dataset.location;
+    const location = target.dataset.location;
     await this.actor.introduceLocation(location);
   }
 
   /**
    * Handle clicking the "Kill" button for a team member.
-   * Shows a confirmation dialog before actually killing them.
-   *
-   * @param {Event} event - The click event
+   * @param {PointerEvent} event - The click event
+   * @param {HTMLElement} target - The element that triggered the action
    */
-  async _onKillMember(event) {
+  static async #onKillMember(event, target) {
     event.preventDefault();
-    // Get the team member index from data-index attribute
-    const index = parseInt(event.currentTarget.dataset.index);
+    const index = parseInt(target.dataset.index);
     const member = this.actor.system.teamMembers[index];
 
-    // Dialog.confirm() shows a yes/no dialog and returns true/false
-    // This is an async operation - we await the user's response
-    const confirmed = await Dialog.confirm({
-      title: "Kill Team Member",
-      content: `<p>Are you sure ${member.name || "this team member"} should die?</p><p>Their mutation will no longer be available.</p>`
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: "Kill Team Member" },
+      content: `<p>Are you sure ${member.name || "this team member"} should die?</p><p>Their mutation will no longer be available.</p>`,
+      yes: { default: true }
     });
 
-    // Only kill if they confirmed
     if (confirmed) {
       await this.actor.killTeamMember(index);
     }
@@ -332,52 +383,61 @@ export class RestaurantSheet extends ActorSheet {
 
   /**
    * Handle clicking the "Revive" button for a dead team member.
-   * This is for corrections - if someone clicked Kill by mistake.
-   * No confirmation needed since this is a "fix" action.
-   *
-   * @param {Event} event - The click event
+   * @param {PointerEvent} event - The click event
+   * @param {HTMLElement} target - The element that triggered the action
    */
-  async _onReviveMember(event) {
+  static async #onReviveMember(event, target) {
     event.preventDefault();
-    const index = parseInt(event.currentTarget.dataset.index);
+    const index = parseInt(target.dataset.index);
 
-    // We need to clone the array before modifying it
-    // Foundry's data is immutable - we can't modify it directly
     const teamMembers = foundry.utils.deepClone(this.actor.system.teamMembers);
 
     if (teamMembers[index]) {
       teamMembers[index].alive = true;
-      // Update the actor in the database
       await this.actor.update({ "system.teamMembers": teamMembers });
     }
   }
 
   /**
-   * Handle toggling the "Earned Shroomp" checkbox for a challenge.
-   * Updates the actor's data to reflect whether they earned the shroomp.
-   *
-   * @param {Event} event - The change event from the checkbox
+   * Handle clicking the profile image to change it.
+   * Opens Foundry's file picker to select a new image.
+   * @param {PointerEvent} event - The click event
+   * @param {HTMLElement} target - The element that triggered the action
+   */
+  static async #onEditImage(event, target) {
+    event.preventDefault();
+    const fp = new FilePicker({
+      type: "image",
+      current: this.actor.img,
+      callback: async (path) => {
+        await this.actor.update({ img: path });
+      }
+    });
+    fp.render(true);
+  }
+
+  // ==========================================================================
+  // INSTANCE EVENT HANDLERS
+  // ==========================================================================
+  /**
+   * These are instance methods for events that need special handling
+   * (like checkbox change events that aren't click actions).
+   */
+
+  /**
+   * Handle toggling the "Earned Shroomp" checkbox.
+   * @param {Event} event - The change event
    */
   async _onToggleShroomp(event) {
-    // event.currentTarget is the checkbox element
     const checkbox = event.currentTarget;
-    // Get the location from the checkbox's data attribute
     const location = checkbox.dataset.location;
-
-    // Build the data path using dot notation
-    // Example: "system.challenges.saltyDesert.earnedShroomp"
     const path = `system.challenges.${location}.earnedShroomp`;
-
-    // Update using computed property name syntax: { [path]: value }
-    // This lets us use a variable as the property name
     await this.actor.update({ [path]: checkbox.checked });
   }
 
   /**
    * Handle toggling the "Challenge Complete" checkbox.
-   * Completed challenges contribute to the running totals.
-   *
-   * @param {Event} event - The change event from the checkbox
+   * @param {Event} event - The change event
    */
   async _onToggleChallengeComplete(event) {
     const checkbox = event.currentTarget;
